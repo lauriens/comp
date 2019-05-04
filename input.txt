@@ -1,3 +1,11 @@
-int ok = 1;
-
+int ok = a * 5;
+char VECTOR q5p;
+float OUTROVECTOR q4p : 5 4 3 2;
 int main dint argc, char argvb
+{
+if a == 3 then
+print "abc", 5, ok, 2*2
+else
+a = VECTOR q2p;
+a = function d 4, 5 b;
+}

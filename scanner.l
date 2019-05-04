@@ -1,11 +1,13 @@
 %{
 	/*
 		Etapa 1
-		Nomes: Laurien Santin e Rodrigo Oliveira
+		Nomes: Laurien Santin
 		Usuário: ~lsantin
 	*/
-	#include "hash.h"
-	#include "y.tab.h"
+	 #include "hash.h"
+ 	 #include <stdio.h>
+	 #include "ast.h"
+	 #include "y.tab.h"
 	int lineNumber;
 	int running = 0;
 %}
@@ -45,7 +47,7 @@ caracterEspecial [-|,|;|:|b|d|p|q|{|}|+|*|/|<|>|=|!|&|$|#]
 [0-9]+"\."[0-9]+		{yylval.symbol = hashInsert(LIT_FLOAT, yytext); return LIT_FLOAT;}
 [a|c|e-o|r-z|A-Z|_][a|c|e-o|r-z|A-Z|0-9|_]* {yylval.symbol = hashInsert(TK_IDENTIFIER, yytext); return TK_IDENTIFIER;}
 
-\"([^(\\.)\"]|\\.)*\"		{yylval.symbol = hashInsert(LIT_STRING, yytext); return LIT_STRING;}
+\"[^\"]*\"			{yylval.symbol = hashInsert(LIT_STRING, yytext); return LIT_STRING;}
 "'"("\\".|[^'\n])"'"		{yylval.symbol = hashInsert(LIT_CHAR, yytext); return LIT_CHAR;}
 
 [ \t]

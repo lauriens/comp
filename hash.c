@@ -1,12 +1,13 @@
 /*
 	Etapa 1
-	Nome: Laurien Santin e Rodrigo Oliveira
+	Nome: Laurien Santin
 	Usuário: ~lsantin
 */
+#include "hash.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "hash.h"
+#include "ast.h"
 
 HASH_NODE* Table[HASH_SIZE];
 
@@ -71,4 +72,20 @@ void hashPrint()
 		for(node; node; node = node->next)
 			printf("\tType: %d\tText: %s", node->type, node->text);
 	}
+}
+
+HASH_NODE* makeTemp()
+{
+	static int serialTemp = 0;
+	static char tempName[100];
+	sprintf(tempName, "tTeEmPmp%dTeMp", serialTemp++);
+	return hashInsert(SYMBOL_TEMP, tempName);
+}
+
+HASH_NODE* makeLabel()
+{
+	static int serialLabel = 0;
+	static char labelName[100];
+	sprintf(labelName, "lLaBelLL%dTemMp", serialLabel++);
+	return hashInsert(SYMBOL_LABEL, labelName);
 }

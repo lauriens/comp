@@ -1,8 +1,12 @@
+// Laurien Santin
+
 %{ 
 	#include <stdio.h>
 	#include <stdlib.h>
-	#include "hash.h"
-	#include "y.tab.h"
+	#include "tac.h"
+	#include "ast.h"
+	#include "hash.h" 
+	
 	int yylex(void); 
 	void yyerror(char *); 
 	extern FILE *yyin;
@@ -15,7 +19,9 @@
 
 %} 
 
-%union { HASH_NODE* symbol; };
+%union { HASH_NODE* symbol; 
+	 AST_NODE* tree;
+	 };
 
 %token 	KW_CHAR
 %token 	KW_INT 
@@ -47,116 +53,123 @@
 %left	'+' '-'
 %left	'*' '/'
 %left	OPERATOR_NOT
+
+%type<tree> program
+%type<tree> progrElements
+%type<tree> type
+%type<tree> literal
+%type<tree> funcDeclaration
+
+%type<tree> cmdList
+%type<tree> cmd
+%type<tree> printList
+%type<tree> argList
+%type<tree> parameterList
+%type<tree> litList
+%type<tree> varDeclaration
+
+%type<tree> attribution
+%type<tree> expression
  
 %% 
 program:
-	progrElements
+	progrElements									{$$ = astInsert(AST_PROGRAM, 0, $1, 0, 0, 0); TAC_NODE* teste = generateCode($$); printTAC(teste); exit(0);}
 	;
 
 progrElements:
-	funcDeclaration progrElements
-	| varDeclaration progrElements
-	| {printf("Success!\n");}
-	;
-
-name:
-	TK_IDENTIFIER
-	;
-
-vector:
-	name 'q' expression 'p'
+	funcDeclaration progrElements							{$$ = astInsert(AST_PROG_ELEMENTS, 0, $1, $2, 0, 0);}
+	| varDeclaration progrElements							{$$ = astInsert(AST_PROG_ELEMENTS, 0, $1, $2, 0, 0);}
+	| {printf("Success!\n");}							{$$ = 0;}
 	;
 
 type:
-	KW_CHAR
-	| KW_INT
-	| KW_FLOAT
+	KW_CHAR										{$$ = astInsert(AST_CHAR, 0, 0, 0, 0, 0);}
+	| KW_INT									{$$ = astInsert(AST_INT, 0, 0, 0, 0, 0);}
+	| KW_FLOAT									{$$ = astInsert(AST_FLOAT, 0, 0, 0, 0, 0);}
 	;
 	
 literal:
-	LIT_INTEGER
-	| LIT_FLOAT
-	| LIT_CHAR
+	LIT_INTEGER									{$$ = astInsert(AST_SYMBOL, $1, 0, 0, 0, 0);}
+	| LIT_FLOAT									{$$ = astInsert(AST_SYMBOL, $1, 0, 0, 0, 0);}
+	| LIT_CHAR									{$$ = astInsert(AST_SYMBOL, $1, 0, 0, 0, 0);}
 	;
 	
 	
 funcDeclaration:
-	type name 'd' parameterList 'b' cmd
+	type TK_IDENTIFIER 'd' parameterList 'b' cmd					{$$ = astInsert(AST_FUNC_DECLARATION, $2, $1, $4, $6, 0);}
 	;
 
-cmdBlock:
-	'{' cmdList '}'
-	;
 	
 cmdList:
-	cmd ';' cmdList
-	|
+	cmd ';' cmdList									{$$ = astInsert(AST_CMD_LIST, 0, $1, $3, 0, 0);}
+	|										{$$ = 0;}
 	;
 
 cmd:
-	attribution
-	| KW_IF expression KW_THEN cmd %prec LOWER_THAN_ELSE
-	| KW_IF expression KW_THEN cmd KW_ELSE cmd
-	| KW_WHILE expression cmd
-	| KW_READ name
-	| KW_PRINT printList
-	| KW_RETURN expression
-	| cmdBlock
-	| 
+	attribution									{$$ = $1;}
+	| KW_IF expression KW_THEN cmd %prec LOWER_THAN_ELSE				{$$ = astInsert(AST_IF, 0, $2, $4, 0, 0);}
+	| KW_IF expression KW_THEN cmd KW_ELSE cmd					{$$ = astInsert(AST_IF_ELSE, 0, $2, $4, $6, 0);}
+	| KW_WHILE expression cmd							{$$ = astInsert(AST_WHILE, 0, $2, $3, 0, 0);}
+	| KW_READ TK_IDENTIFIER								{$$ = astInsert(AST_READ, $2, 0, 0, 0, 0);}
+	| KW_PRINT printList								{$$ = astInsert(AST_PRINT, 0, $2, 0, 0, 0);}
+	| KW_RETURN expression								{$$ = astInsert(AST_RETURN, 0, $2, 0, 0, 0);}
+	| '{' cmdList '}'								{$$ = astInsert(AST_CMD_BLOCK, 0, $2, 0, 0, 0);}
+	| 										{$$ = 0;}
 	;
 
 printList:
-	LIT_STRING ',' printList
-	| expression ',' printList
-	| LIT_STRING
-	| expression
+	LIT_STRING ',' printList							{$$ = astInsert(AST_PRINT_LIST, $1, $3, 0, 0, 0);}
+	| expression ',' printList							{$$ = astInsert(AST_PRINT_LIST, 0, $1, $3, 0, 0);}
+	| LIT_STRING									{$$ = astInsert(AST_PRINT_LIST, $1, 0, 0, 0, 0);}
+	| expression									{$$ = astInsert(AST_PRINT_LIST, 0, $1, 0, 0, 0);}
 	;
 
 parameterList:
-	type name ',' parameterList
-	| type name
-	|
+	type TK_IDENTIFIER ',' parameterList						{$$ = astInsert(AST_PARAM_LIST, $2, $1, $4, 0, 0);}
+	| type TK_IDENTIFIER								{$$ = astInsert(AST_PARAM_LIST, $2, $1, 0, 0, 0);}
+	|										{$$ = 0;}
 	;
 	
 litList:
-	literal
-	| literal litList
+	literal										{$$ = astInsert(AST_LIT_LIST, 0, $1, 0, 0, 0);}
+	| literal litList								{$$ = astInsert(AST_LIT_LIST, 0, $1, $2, 0, 0);}
 	;
 
 argList:
-	expression ',' argList
-	| expression
+	expression ',' argList								{$$ = astInsert(AST_ARG_LIST, 0, $1, $3, 0, 0);}
+	| expression									{$$ = astInsert(AST_ARG_LIST, 0, $1, 0, 0, 0);}
+	|										{$$ = 0;}
 	;
 		
 varDeclaration:
-	type name '=' expression ';'
-	| type name 'q' LIT_INTEGER 'p' ';'
-	| type name 'q' LIT_INTEGER 'p' ':' litList ';'
+	type TK_IDENTIFIER '=' expression ';'						{$$ = astInsert(AST_VAR_DECLARATION, $2, $1, $4, 0, 0);}
+	| type TK_IDENTIFIER 'q' LIT_INTEGER 'p' ';'					{$$ = astInsert(AST_VECTOR_DECLARATION, $2, $1, astInsert(AST_SYMBOL, $4, 0, 0, 0, 0), 0, 0);}
+	| type TK_IDENTIFIER 'q' LIT_INTEGER 'p' ':' litList ';'			{$$ = astInsert(AST_VEC_DEC_INIT, $2, $1, astInsert(AST_SYMBOL, $4, 0, 0, 0, 0), $7, 0);}
 	;
 	
 attribution:
-	name '=' expression
-	| vector '=' expression
+	TK_IDENTIFIER '=' expression							{$$ = astInsert(AST_VAR_ATTRIBUTION, $1, $3, 0, 0, 0);}
+	| TK_IDENTIFIER 'q' expression 'p' '=' expression				{$$ = astInsert(AST_VECTOR_ATTRIBUTION, $1, $3, $6, 0, 0);}
 	;
 
 expression:
-	literal
-	| name
-	| vector
-	| expression '+' expression
-	| expression '-' expression
-	| expression '*' expression
-	| expression '/' expression
-	| expression '<' expression
-	| expression '>' expression
-	| expression OPERATOR_LE expression
-	| expression OPERATOR_GE expression
-	| expression OPERATOR_EQ expression
-	| expression OPERATOR_OR expression
-	| expression OPERATOR_AND expression
-	| OPERATOR_NOT expression
-	| 'd' expression 'b'
-	| name 'd' argList 'b'
+	literal										{$$ = $1;}
+	| TK_IDENTIFIER									{$$ = astInsert(AST_SYMBOL, $1, 0, 0, 0, 0);}
+	| TK_IDENTIFIER 'q' expression 'p'						{$$ = astInsert(AST_VECTOR, $1, $3, 0, 0, 0);}
+	| expression '+' expression							{$$ = astInsert(AST_SUM, 0, $1, $3, 0, 0);}
+	| expression '-' expression							{$$ = astInsert(AST_SUB, 0, $1, $3, 0, 0);}
+	| expression '*' expression							{$$ = astInsert(AST_MUL, 0, $1, $3, 0, 0);}
+	| expression '/' expression							{$$ = astInsert(AST_DIV, 0, $1, $3, 0, 0);}
+	| expression '<' expression							{$$ = astInsert(AST_LT, 0, $1, $3, 0, 0);}
+	| expression '>' expression							{$$ = astInsert(AST_GT, 0, $1, $3, 0, 0);}
+	| expression OPERATOR_LE expression						{$$ = astInsert(AST_LE, 0, $1, $3, 0, 0);}
+	| expression OPERATOR_GE expression						{$$ = astInsert(AST_GE, 0, $1, $3, 0, 0);}
+	| expression OPERATOR_EQ expression						{$$ = astInsert(AST_EQ, 0, $1, $3, 0, 0);}
+	| expression OPERATOR_OR expression						{$$ = astInsert(AST_OR, 0, $1, $3, 0, 0);}
+	| expression OPERATOR_AND expression						{$$ = astInsert(AST_AND, 0, $1, $3, 0, 0);}
+	| OPERATOR_NOT expression							{$$ = astInsert(AST_NOT, 0, $2, 0, 0, 0);}
+	| 'd' expression 'b'								{$$ = astInsert(AST_EXPRESSION_BRACKETS, 0, $2, 0, 0, 0);}
+	| TK_IDENTIFIER 'd' argList 'b'							{$$ = astInsert(AST_FUNC_CALL, $1, $3, 0, 0, 0);}
         ; 
 
 %% 
